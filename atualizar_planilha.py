@@ -1,10 +1,11 @@
 import os
 import json
+import time
 import requests
 import gspread
 import pandas as pd
 
-SPREADSHEET_ID = "1LgK6yLEFYZaOOTHil-r_FdQgSeJPUO_JBtamCfpi80"
+SPREADSHEET_ID = "1LgK6yLEfYZaOOTHil-r_FdQgSeJPUO_JBtamCfpi80"
 
 def obter_tabela_completa_fundamentus():
     url = "https://www.fundamentus.com.br/resultado.php"
@@ -15,11 +16,8 @@ def obter_tabela_completa_fundamentus():
     response = requests.get(url, headers=headers)
     response.encoding = 'iso-8859-1'
     
-    # Captura a tabela idêntica ao site do Fundamentus
     dfs = pd.read_html(response.text, decimal=',', thousands='.')
     df = dfs[0]
-    
-    # Tratamento de valores para garantir o envio sem erros no JSON
     df = df.fillna(0)
     return df
 
@@ -32,16 +30,40 @@ def atualizar_google_sheets():
     creds_dict = json.loads(creds_json_str)
     
     gc = gspread.service_account_from_dict(creds_dict)
-    sh = gc.open_by_key(SPREADSHEET_ID)
     
+    # Tentativa de conexão com retry em caso de erro 503 do Google
+    tentativas = 3
+    sh = None
+    for i in range(tentativas):
+        try:
+            sh = gc.open_by_key(SPREADSHEET_ID)
+            break
+        except gspread.exceptions.APIError as e:
+            if i < tentativas - 1:
+                print(f"Instabilidade temporária no Google (503). Re-tentando em 5 segundos... (Tentativa {i+1}/{tentativas})")
+                time.sleep(5)
+            else:
+                raise e
+
     aba_base = sh.worksheet("Base_Fundamentus")
     
-    print("3/3 - Enviando todas as colunas para a planilha...")
+    print("3/3 - Enviando todas as 21 colunas para a planilha...")
     dados_envio = [df.columns.values.tolist()] + df.values.tolist()
-    aba_base.clear()
-    aba_base.update(dados_envio)
     
-    print(f"✅ Sucesso! {len(df.columns)} colunas e {len(df)} ações atualizadas na aba Base_Fundamentus.")
+    # Atualização com retry automático
+    for i in range(tentativas):
+        try:
+            aba_base.clear()
+            aba_base.update(dados_envio)
+            break
+        except gspread.exceptions.APIError as e:
+            if i < tentativas - 1:
+                print(f"Erro de envio (503). Re-tentando em 5 segundos... (Tentativa {i+1}/{tentativas})")
+                time.sleep(5)
+            else:
+                raise e
+    
+    print(f"✅ Sucesso! {len(df.columns)} colunas e {len(df)} ações salvas na aba Base_Fundamentus.")
 
 if __name__ == "__main__":
     atualizar_google_sheets()
