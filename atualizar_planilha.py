@@ -4,7 +4,7 @@ import requests
 import gspread
 import pandas as pd
 
-SPREADSHEET_ID = "1LgK6yLEFYZaOOTHil-r_FdQgSeJPUO_JBtamCfpi80"
+SPREADSHEET_ID = "1LgK6yLEfYZaOOTHiI-r_FdQggSeJPUO_JBtamCfpi80"
 
 def obter_dados_fundamentus_direto():
     """Baixa e trata a tabela do Fundamentus via HTTP direto sem dependências instáveis."""
