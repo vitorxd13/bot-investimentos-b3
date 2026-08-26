@@ -5,7 +5,8 @@ import requests
 import gspread
 import pandas as pd
 
-SPREADSHEET_ID = "1LgK6yLEfYZaOOTHil-r_FdQgSeJPUO_JBtamCfpi80"
+# ID exato mantendo maiúsculas e minúsculas
+SPREADSHEET_ID = "1LgK6yLEfYZaOOTHiI-r_FdQggSeJPUO_JBtamCfpi80"
 
 def obter_tabela_completa_fundamentus():
     url = "https://www.fundamentus.com.br/resultado.php"
@@ -22,7 +23,7 @@ def obter_tabela_completa_fundamentus():
     return df
 
 def atualizar_google_sheets():
-    print("1/3 - Baixando a tabela completa de 21 colunas do Fundamentus...")
+    print("1/3 - Baixando a tabela completa de colunas do Fundamentus...")
     df = obter_tabela_completa_fundamentus()
 
     print("2/3 - Autenticando com a API do Google...")
@@ -31,37 +32,26 @@ def atualizar_google_sheets():
     
     gc = gspread.service_account_from_dict(creds_dict)
     
-    # Tentativa de conexão com retry em caso de erro 503 do Google
     tentativas = 3
     sh = None
     for i in range(tentativas):
         try:
             sh = gc.open_by_key(SPREADSHEET_ID)
             break
-        except gspread.exceptions.APIError as e:
+        except Exception as e:
             if i < tentativas - 1:
-                print(f"Instabilidade temporária no Google (503). Re-tentando em 5 segundos... (Tentativa {i+1}/{tentativas})")
-                time.sleep(5)
+                print(f"Tentando conectar à planilha... (Tentativa {i+1}/{tentativas})")
+                time.sleep(3)
             else:
                 raise e
 
     aba_base = sh.worksheet("Base_Fundamentus")
     
-    print("3/3 - Enviando todas as 21 colunas para a planilha...")
+    print("3/3 - Enviando todas as colunas para a planilha...")
     dados_envio = [df.columns.values.tolist()] + df.values.tolist()
     
-    # Atualização com retry automático
-    for i in range(tentativas):
-        try:
-            aba_base.clear()
-            aba_base.update(dados_envio)
-            break
-        except gspread.exceptions.APIError as e:
-            if i < tentativas - 1:
-                print(f"Erro de envio (503). Re-tentando em 5 segundos... (Tentativa {i+1}/{tentativas})")
-                time.sleep(5)
-            else:
-                raise e
+    aba_base.clear()
+    aba_base.update(dados_envio)
     
     print(f"✅ Sucesso! {len(df.columns)} colunas e {len(df)} ações salvas na aba Base_Fundamentus.")
 
