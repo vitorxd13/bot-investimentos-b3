@@ -2,9 +2,9 @@ name: Rotina Diária de Atualização B3
 
 on:
   schedule:
-    # Roda de segunda a sexta às 21:00 UTC (18:00 Horário de Brasília, após o fechamento da B3)
+    # Roda de segunda a sexta às 21:00 UTC (18:00 Horário de Brasília)
     - cron: '0 21 * * 1-5'
-  workflow_dispatch: # Permite rodar manualmente clicando em um botão a qualquer momento
+  workflow_dispatch: # Permite rodar manualmente a qualquer momento
 
 jobs:
   atualizar:
@@ -21,7 +21,7 @@ jobs:
       - name: Instalar Dependências
         run: |
           python -m pip install --upgrade pip
-          pip install gspread pandas pyfundamentus
+          pip install gspread pandas requests lxml html5lib
 
       - name: Executar Atualização da Planilha
         env:
