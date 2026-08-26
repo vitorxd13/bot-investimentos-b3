@@ -9,7 +9,14 @@ SPREADSHEET_ID = "1LgK6yLEFYZaOOTHil-r_FdQgSeJPUO_JBtamCfpi80"
 
 def atualizar_google_sheets():
     print("1/3 - Obtendo cotações e indicadores das ações no Fundamentus...")
-    df = fundamentus.get_resultado().reset_index()
+    
+    # Captura os dados do Fundamentus com compatibilidade de versão
+    try:
+        df = fundamentus.get_resultado()
+    except AttributeError:
+        df = fundamentus.get_resultado_raw()
+        
+    df = df.reset_index()
     
     colunas_mapeadas = {
         'papel': 'Papel',
